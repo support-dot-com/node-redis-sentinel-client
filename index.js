@@ -289,7 +289,14 @@ RedisSentinelClient.prototype._connect = function (port, host) {
 RedisSentinelClient.prototype.send_command = function (command, args, callback) {
   // this ref needs to be totally atomic
   var client = this.activeMasterClient;
-  return client.send_command.apply(client, arguments);
+  if (!client) {
+    var originalArguments = arguments;
+    this.once('reconnected', function (master) {
+      return master.send_command.apply(master, originalArguments);
+    });
+  } else {
+    return client.send_command.apply(client, arguments);
+  }
 };
 
 // adapted from index.js for RedisClient
